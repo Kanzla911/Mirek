@@ -8,14 +8,22 @@ import time
 
 from . import __version__, config
 from .agent import Agent
-from .llm import Ollama, OllamaError
+from .llm import OllamaError, make_llm
 
 DIM, BOLD, YEL, RED, GRN, RST = "\033[2m", "\033[1m", "\033[33m", "\033[31m", "\033[32m", "\033[0m"
 
 
-def ensure_ollama(cfg, pull=True):
-    """Prüft Ollama, startet es bei Bedarf und lädt das Modell. Gibt True zurück, wenn alles bereit ist."""
-    llm = Ollama.from_config(cfg)
+def ensure_backend(cfg, pull=True):
+    """Prüft die KI-Anbindung, startet Ollama bei Bedarf und lädt das Modell. True = bereit."""
+    llm = make_llm(cfg)
+    if cfg.get("backend") == "openai":
+        try:
+            llm.version()
+            return True
+        except OllamaError as e:
+            print(f"{YEL}KI-Server ({cfg['openai_base_url']}) nicht erreichbar: {e}{RST}")
+            print("Starte z.B. LM Studio und aktiviere dort den lokalen Server, dann erneut starten.")
+            return False
     try:
         llm.version()
     except OllamaError:
@@ -57,7 +65,7 @@ def ensure_ollama(cfg, pull=True):
 
 
 def terminal_chat(cfg):
-    if not ensure_ollama(cfg):
+    if not ensure_backend(cfg):
         sys.exit(1)
     agent = Agent(cfg)
     print(f"{BOLD}⚡ Mirek die Macht alles{RST} – Modell {cfg['model']}, Modus {cfg['permission_mode']}")
@@ -134,19 +142,21 @@ def main():
         cfg["permission_mode"] = args.mode
 
     if args.command == "setup":
-        sys.exit(0 if ensure_ollama(cfg) else 1)
+        sys.exit(0 if ensure_backend(cfg) else 1)
     if args.command == "chat":
         terminal_chat(cfg)
     elif args.command == "telegram":
+        from .scheduler import Scheduler
         from .telegram import run_bot
 
-        if not ensure_ollama(cfg):
+        if not ensure_backend(cfg):
             sys.exit(1)
+        Scheduler(cfg).start()
         run_bot(cfg)
     else:
         from .server import serve
 
-        ensure_ollama(cfg)
+        ensure_backend(cfg)
         serve(cfg, open_browser=not args.no_browser)
 
 

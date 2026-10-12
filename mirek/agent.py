@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 
 from . import config
-from .llm import Ollama, OllamaError
-from .tools import TOOLS, Context, execute, schemas, tool_list_text
+from .llm import OllamaError, make_llm
+from .tools import TOOLS, Context, execute, is_critical, load_plugins, schemas, tool_list_text
 
 TOOL_TAG = re.compile(r"<tool(?:_call)?>\s*(\{.*?\})\s*</tool(?:_call)?>", re.S)
 RESULT_PREFIX = "[Ergebnis von "
@@ -30,13 +30,16 @@ So arbeitest du:
 Werkzeug aufgerufen zu haben.
 - Geh Schritt für Schritt vor: erst nachsehen (Ordner auflisten, Datei lesen, Befehl prüfen), dann handeln, \
 dann das Ergebnis kontrollieren.
-- Schlägt etwas fehl, lies die Fehlermeldung und probiere einen anderen Weg.
+- Bei Aufgaben mit mehreren Schritten: lege zuerst mit `update_plan` eine Checkliste an und halte sie aktuell.
+- Schlägt etwas fehl, lies die Fehlermeldung und probiere einen anderen Weg. Fehlt ein Programm oder \
+Python-Paket, installiere es (z.B. mit `run_command` und pip/dem Paketmanager) statt aufzugeben.
 - Erfinde nichts. Prüfe Fakten mit Werkzeugen (Dateien, Befehle, Websuche).
-- Bei riskanten Aktionen (löschen, überschreiben, Systemeinstellungen) sei vorsichtig; ist der Wunsch \
-unklar, frag kurz nach.
+- Du veränderst Dateien gefahrlos: write_file/edit_file/delete_file legen Sicherungen an, `undo_file` macht \
+Änderungen rückgängig. Gelöschtes landet im Mirek-Papierkorb.
+- Bei unklaren oder sehr weitreichenden Wünschen frag kurz nach, bevor du große Änderungen machst.
 - Antworte knapp in der Sprache des Nutzers und fasse am Ende zusammen, was du getan hast.
-- Merke dir dauerhaft wichtige Infos über den Nutzer mit dem Werkzeug `remember`.
-{memory}{skills}{text_tools}"""
+- Merke dir dauerhaft Wichtiges über den Nutzer mit `remember`. Für „später“/„jeden Tag“ nutze `schedule`.
+{vision}{memory}{skills}{text_tools}"""
 
 TEXT_TOOLS = """
 Werkzeuge:
@@ -65,7 +68,9 @@ def list_sessions():
             data = json.loads(f.read_text("utf-8"))
         except (OSError, ValueError):
             continue
-        sessions.append({"id": data["id"], "title": data.get("title") or "Neuer Chat", "updated": data.get("updated", 0)})
+        if data.get("messages"):
+            sessions.append({"id": data["id"], "title": data.get("title") or "Neuer Chat",
+                             "updated": data.get("updated", 0)})
     return sorted(sessions, key=lambda s: s["updated"], reverse=True)
 
 
@@ -91,7 +96,7 @@ def parse_text_tool_calls(content):
     candidates = TOOL_TAG.findall(content)
     if not candidates:
         stripped = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip())
-        if stripped.startswith("{") and stripped.endswith("}"):
+        if stripped.startswith("{") and stripped.endswith("}") and '"name"' in stripped:
             candidates = [stripped]
     calls = []
     for raw in candidates:
@@ -111,34 +116,39 @@ def history_view(messages):
     items = []
     for m in messages:
         role, content = m["role"], m.get("content") or ""
-        if role == "user" and content.startswith(RESULT_PREFIX) or role == "tool":
+        if role == "tool" or (role == "user" and content.startswith(RESULT_PREFIX)):
+            text = content.split("]\n", 1)[-1] if role == "user" else content
             for it in reversed(items):
                 if it["type"] == "tool" and it.get("output") is None:
-                    it["output"] = content.split("]\n", 1)[-1] if role == "user" else content
+                    it["output"] = text
+                    it["images"] = m.get("image_paths", [])
                     break
         elif role == "user":
-            items.append({"type": "user", "text": content})
+            items.append({"type": "user", "text": content, "images": m.get("image_paths", [])})
         elif role == "assistant":
             text = visible_text(content).strip()
             if text:
                 items.append({"type": "assistant", "text": text})
-            calls = m.get("tool_calls") or parse_text_tool_calls(content)
-            for c in calls:
-                items.append({"type": "tool", "name": c["function"]["name"], "args": c["function"]["arguments"], "output": None})
+            for c in m.get("tool_calls") or parse_text_tool_calls(content):
+                items.append({"type": "tool", "name": c["function"]["name"],
+                              "args": c["function"]["arguments"], "output": None, "images": []})
     return items
 
 
 class Agent:
     def __init__(self, cfg, llm=None, session_id=None):
         self.cfg = cfg
-        self.llm = llm or Ollama.from_config(cfg)
+        self.llm = llm or make_llm(cfg)
         self.session_id = session_id or new_id()
-        self.ctx = Context(Path(cfg["workspace"]).expanduser(), config.HOME, cfg["command_timeout"])
+        self.ctx = Context(Path(cfg["workspace"]).expanduser(), config.HOME,
+                           cfg["command_timeout"], self.session_id, cfg)
         self.messages = []
         self.title = ""
         self.created = time.time()
         self.native_tools = True
         self.cancelled = False
+        self.always_allow = set()
+        self._plugins_loaded = False
         self._load()
 
     # ------------------------------------------------------------ Speicher
@@ -164,9 +174,20 @@ class Agent:
             "id": self.session_id, "title": self.title, "created": self.created, "updated": time.time(),
             "cwd": str(self.ctx.cwd), "native_tools": self.native_tools, "messages": self.messages,
         }
-        self.path.write_text(json.dumps(data, ensure_ascii=False, indent=1), "utf-8")
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), "utf-8")
+        tmp.replace(self.path)
 
     # ------------------------------------------------------------ Prompt
+
+    def detect_vision(self):
+        setting = self.cfg.get("vision", "auto")
+        if setting in (True, False):
+            return setting
+        try:
+            return "vision" in self.llm.capabilities()
+        except Exception:
+            return False
 
     def system_prompt(self):
         memory_file = config.HOME / "memory.md"
@@ -175,8 +196,8 @@ class Agent:
         skills_dir = config.HOME / "skills"
         if skills_dir.is_dir():
             for f in sorted(skills_dir.glob("*.md")):
-                first = f.read_text("utf-8").strip().splitlines()[:1]
-                skills.append(f"- {f.stem}: {first[0].lstrip('# ') if first else ''} (Anleitung: {f})")
+                head = f.read_text("utf-8").strip().splitlines()[:1]
+                skills.append(f"- {f.stem}: {head[0].lstrip('# ') if head else ''} (Anleitung: {f})")
         return SYSTEM_PROMPT.format(
             os=f"{platform.system()} {platform.release()}",
             shell="PowerShell" if sys.platform == "win32" else "bash",
@@ -184,6 +205,8 @@ class Agent:
             now=datetime.now().strftime("%A, %d.%m.%Y %H:%M"),
             user_home=Path.home(),
             cwd=self.ctx.cwd,
+            vision=("Du kannst Bilder sehen: Screenshots und Bilddateien werden dir direkt gezeigt.\n"
+                    if self.ctx.vision else ""),
             memory=f"\nDein Gedächtnis über den Nutzer:\n{memory}\n" if memory else "",
             skills=("\nSkills (bei passender Aufgabe zuerst die Anleitung mit read_file lesen):\n"
                     + "\n".join(skills) + "\n") if skills else "",
@@ -199,7 +222,6 @@ class Agent:
             if used > budget and start < len(self.messages):
                 break
             start = i
-        # Nie mitten in einer Werkzeugkette beginnen
         while start < len(self.messages) - 1 and (
             self.messages[start]["role"] != "user" or self.messages[start]["content"].startswith(RESULT_PREFIX)
         ):
@@ -208,14 +230,22 @@ class Agent:
 
     # ------------------------------------------------------------ Schleife
 
-    def run(self, text, approve):
-        """Generator mit Ereignissen. approve(request) -> bool wird bei gefährlichen Aktionen gerufen."""
+    def run(self, text, approve, images=None):
+        """Generator mit Ereignissen. approve(request)->bool wird bei gefährlichen Aktionen gerufen."""
         self.cancelled = False
-        if hasattr(self.llm, "model"):
-            self.llm.model = self.cfg["model"]
+        self.llm.model = self.cfg["model"]
+        self.ctx.cfg = self.cfg
+        self.ctx.command_timeout = self.cfg["command_timeout"]
+        self.ctx.vision = self.detect_vision()
+        if not self._plugins_loaded:
+            load_plugins(config.HOME)
+            self._plugins_loaded = True
         if not self.title:
             self.title = text.strip().splitlines()[0][:60] if text.strip() else "Neuer Chat"
-        self.messages.append({"role": "user", "content": text})
+        user_msg = {"role": "user", "content": text}
+        if images:
+            user_msg["image_paths"] = list(images)
+        self.messages.append(user_msg)
         try:
             for _ in range(self.cfg["max_steps"]):
                 if self.cancelled:
@@ -223,7 +253,8 @@ class Agent:
                     break
                 content, calls, shown = "", [], 0
                 try:
-                    for part in self.llm.chat(self._context_messages(), schemas() if self.native_tools else None):
+                    for part in self.llm.chat(self._context_messages(), schemas() if self.native_tools else None,
+                                              vision=self.ctx.vision):
                         if self.cancelled:
                             break
                         if part.get("thinking"):
@@ -237,7 +268,7 @@ class Agent:
                         if part.get("tool_calls"):
                             calls.extend(part["tool_calls"])
                 except OllamaError as e:
-                    if self.native_tools and "does not support tools" in str(e).lower():
+                    if self.native_tools and self._looks_like_no_tools(e):
                         self.native_tools = False
                         yield {"type": "info", "text": "Dieses Modell kann keine nativen Werkzeuge – ich nutze den Text-Modus."}
                         continue
@@ -263,33 +294,62 @@ class Agent:
                             args = json.loads(args)
                         except ValueError:
                             args = {}
-                    output, ok = yield from self._run_tool(name, args, approve)
-                    if self.native_tools:
-                        self.messages.append({"role": "tool", "content": output, "tool_name": name})
-                    else:
-                        self.messages.append({"role": "user", "content": f"{RESULT_PREFIX}{name}]\n{output}"})
+                    yield from self._run_tool(call, name, args, approve)
             else:
                 yield {"type": "info", "text": f"Schrittlimit ({self.cfg['max_steps']}) erreicht – sag „weiter“, um fortzufahren."}
             yield {"type": "done"}
         finally:
             self.save()
 
-    def _run_tool(self, name, args, approve):
+    @staticmethod
+    def _looks_like_no_tools(error):
+        msg = str(error).lower()
+        return "does not support tools" in msg or "tools" in msg and "support" in msg
+
+    def _run_tool(self, call, name, args, approve):
         tool = TOOLS.get(name)
-        yield {"type": "tool_call", "name": name, "args": args, "dangerous": bool(tool and tool.dangerous)}
+        yield {"type": "tool_call", "name": name, "args": args, "dangerous": bool(tool and tool.is_dangerous(args))}
+        self.ctx.events.clear()
         allowed = True
-        if tool and tool.dangerous:
+        if tool and tool.is_dangerous(args):
             mode = self.cfg["permission_mode"]
+            critical = is_critical(name, args)
             if mode == "readonly":
                 allowed = False
-            elif mode == "ask":
-                request = {"type": "approval", "id": uuid.uuid4().hex, "session": self.session_id, "name": name, "args": args}
+            elif mode == "auto" and not critical:
+                allowed = True
+            elif name in self.always_allow and not critical:
+                allowed = True
+            else:
+                request = {"type": "approval", "id": uuid.uuid4().hex, "session": self.session_id,
+                           "name": name, "args": args, "critical": critical}
                 yield request
-                allowed = bool(approve(request)) and not self.cancelled
+                decision = approve(request)
+                allowed = bool(decision) and not self.cancelled
+                if decision == "always" and not critical:
+                    self.always_allow.add(name)
+
+        images = []
         if allowed:
-            ok, output = execute(self.ctx, name, args)
+            ok, output, images = execute(self.ctx, name, args)
+        elif self.cfg["permission_mode"] == "readonly":
+            ok, output = False, "Nur-Lesen-Modus aktiv: Diese verändernde Aktion ist nicht erlaubt."
         else:
-            ok, output = False, DENIED if self.cfg["permission_mode"] != "readonly" else \
-                "Nur-Lesen-Modus aktiv: Diese Aktion ist nicht erlaubt."
-        yield {"type": "tool_result", "name": name, "ok": ok, "output": output}
-        return output, ok
+            ok, output = False, DENIED
+
+        for ev in self.ctx.events:
+            yield ev
+        self.ctx.events.clear()
+
+        tool_msg = {"role": "tool", "content": output, "tool_name": name,
+                    "tool_call_id": call.get("id", "")}
+        if images:
+            tool_msg["image_paths"] = images
+        if self.native_tools:
+            self.messages.append(tool_msg)
+        else:
+            text_msg = {"role": "user", "content": f"{RESULT_PREFIX}{name}]\n{output}"}
+            if images:
+                text_msg["image_paths"] = images
+            self.messages.append(text_msg)
+        yield {"type": "tool_result", "name": name, "ok": ok, "output": output, "images": images}

@@ -8,128 +8,170 @@
 :root {
   --bg: #0e1015; --panel: #161921; --panel2: #1d212b; --line: #2a2f3b;
   --text: #e7e9ee; --muted: #8b92a3; --accent: #ffb020; --accent2: #ff6a3d;
-  --ok: #3ccf8e; --bad: #ff5d6c; --radius: 14px;
+  --ok: #3ccf8e; --bad: #ff5d6c; --blue: #5aa8ff; --radius: 14px;
+}
+:root[data-theme="light"] {
+  --bg: #f4f5f8; --panel: #ffffff; --panel2: #eef0f4; --line: #dde0e8;
+  --text: #1a1d24; --muted: #6a7386; --accent: #e67e00; --accent2: #e04f20;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
   font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-.app { display: grid; grid-template-columns: 270px 1fr; height: 100%; }
+.app { display: grid; grid-template-columns: 272px 1fr; height: 100%; }
 
-/* Seitenleiste */
 aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
-.brand { padding: 18px 18px 10px; }
+.brand { padding: 16px 18px 8px; display: flex; align-items: center; justify-content: space-between; }
 .brand h1 { margin: 0; font-size: 20px; letter-spacing: .3px; }
 .brand h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
-.newchat { margin: 8px 14px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); text-align: left; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.theme { border: 0; background: none; font-size: 18px; color: var(--muted); }
+.newchat { margin: 6px 14px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); text-align: left; }
 .newchat:hover { border-color: var(--accent); }
-.sessions { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.tabs { display: flex; gap: 4px; margin: 6px 14px 2px; }
+.tabs button { flex: 1; border: 0; background: none; color: var(--muted); padding: 6px; border-radius: 8px; font-size: 13px; }
+.tabs button.active { background: var(--panel2); color: var(--text); }
+.scroll { flex: 1; overflow-y: auto; padding: 4px 8px; }
 .sess { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 14px; }
 .sess:hover, .sess.active { background: var(--panel2); color: var(--text); }
 .sess .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sess .del { opacity: 0; border: 0; background: none; color: var(--muted); padding: 0 4px; }
 .sess:hover .del { opacity: 1; }
-.foot { border-top: 1px solid var(--line); padding: 12px 14px; font-size: 13px; color: var(--muted); display: grid; gap: 8px; }
+.task { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; margin: 6px 4px; font-size: 13px; }
+.task .when { color: var(--accent); font-size: 12px; }
+.task .acts { display: flex; gap: 10px; margin-top: 6px; }
+.task .acts button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 0; }
+.task .acts button:hover { color: var(--text); }
+.task .res { color: var(--muted); font-size: 12px; margin-top: 5px; border-left: 2px solid var(--line); padding-left: 7px; white-space: pre-wrap; max-height: 80px; overflow: auto; }
+.empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 10px; }
+.foot { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; color: var(--muted); display: grid; gap: 8px; }
 .foot .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 6px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 6px; flex: none; }
 .dot.on { background: var(--ok); }
-.linkbtn { border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 6px 10px; }
+.linkbtn { border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
 .linkbtn:hover { border-color: var(--accent); }
+.chip { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 1px 8px; }
 
-/* Hauptbereich */
-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.banner { margin: 14px auto 0; width: min(820px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px;
+main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+.banner { margin: 14px auto 0; width: min(860px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px;
   background: #2a1e10; border: 1px solid #5a3f17; font-size: 14px; display: none; }
+:root[data-theme="light"] .banner { background: #fff7e6; border-color: #f0c67a; }
 .banner.show { display: block; }
 .banner button { margin-top: 8px; }
 .progress { height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; display: none; }
 .progress > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .2s; }
-#chat { flex: 1; overflow-y: auto; padding: 24px 16px 8px; }
-.inner { width: min(820px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+#chat { flex: 1; overflow-y: auto; padding: 22px 16px 8px; }
+.inner { width: min(860px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 .msg { max-width: 100%; overflow-wrap: anywhere; }
 .msg.user { align-self: flex-end; background: var(--panel2); border: 1px solid var(--line); padding: 10px 14px; border-radius: var(--radius) var(--radius) 4px var(--radius); white-space: pre-wrap; max-width: 85%; }
-.msg.assistant { padding: 2px 2px; }
-.msg.assistant p { margin: 0 0 .6em; }
-.msg.assistant p:last-child { margin-bottom: 0; }
+.msg.assistant { padding: 2px; position: relative; }
+.msg.assistant p { margin: 0 0 .6em; } .msg.assistant p:last-child { margin-bottom: 0; }
+.msg.assistant ul, .msg.assistant ol { margin: .3em 0 .6em; padding-left: 1.4em; }
 .msg.info { color: var(--muted); font-size: 13px; text-align: center; }
 .msg.error { color: var(--bad); font-size: 14px; border: 1px solid #5b2730; background: #2a1418; padding: 8px 12px; border-radius: 10px; }
+:root[data-theme="light"] .msg.error { background: #fdecee; border-color: #f5b5bd; }
+.actbar { display: flex; gap: 10px; margin-top: 6px; opacity: 0; transition: .15s; }
+.msg.assistant:hover .actbar { opacity: 1; }
+.actbar button { border: 0; background: none; color: var(--muted); font-size: 12px; padding: 0; }
+.actbar button:hover { color: var(--text); }
 code { background: var(--panel2); padding: 1px 5px; border-radius: 5px; font: 13px/1.4 ui-monospace, "Cascadia Code", Menlo, monospace; }
-pre { background: #0a0c10; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: .5em 0; }
+pre { background: #0a0c10; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: .5em 0; position: relative; }
+:root[data-theme="light"] pre { background: #1a1d24; color: #e7e9ee; }
 pre code { background: none; padding: 0; white-space: pre; }
-.msg a { color: var(--accent); }
+pre .copy { position: absolute; top: 6px; right: 6px; font-size: 11px; opacity: .6; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 2px 6px; }
+.msg a { color: var(--blue); }
+.imgs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.imgs img { max-width: 240px; max-height: 200px; border-radius: 10px; border: 1px solid var(--line); cursor: pointer; }
 .tool { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; font-size: 13.5px; }
 .tool summary { padding: 8px 12px; cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: center; }
 .tool summary::-webkit-details-marker { display: none; }
-.tool .name { font-weight: 600; }
-.tool .arg { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
-.tool .state { font-size: 12px; }
-.tool .body { padding: 0 12px 10px; }
-.tool pre { max-height: 320px; overflow: auto; font-size: 12.5px; }
-.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; }
+.tool .name { font-weight: 600; } .tool .arg { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.tool .body { padding: 0 12px 10px; } .tool pre { max-height: 320px; overflow: auto; font-size: 12.5px; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: s .8s linear infinite; flex: none; }
 @keyframes s { to { transform: rotate(360deg); } }
 .approve { border-top: 1px dashed var(--line); padding: 10px 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #221a0d; border-radius: 0 0 12px 12px; }
+:root[data-theme="light"] .approve { background: #fff7e6; }
+.approve.crit { background: #2a1114; } :root[data-theme="light"] .approve.crit { background: #fdecee; }
 .approve .q { flex: 1; min-width: 180px; }
 .btn { border: 0; border-radius: 9px; padding: 7px 14px; font-weight: 600; }
-.btn.yes { background: var(--ok); color: #06140d; }
-.btn.no { background: var(--panel2); border: 1px solid var(--line); }
+.btn.yes { background: var(--ok); color: #06140d; } .btn.no { background: var(--panel2); border: 1px solid var(--line); }
 .btn.all { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
 details.think { color: var(--muted); font-size: 13px; }
-details.think div { white-space: pre-wrap; border-left: 2px solid var(--line); padding-left: 10px; margin-top: 4px; }
+details.think div { white-space: pre-wrap; border-left: 2px solid var(--line); padding-left: 10px; margin-top: 4px; max-height: 300px; overflow: auto; }
+.plan { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.plan .ph { font-weight: 600; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+.plan .step { display: flex; gap: 8px; padding: 2px 0; }
+.plan .step.erledigt { color: var(--muted); text-decoration: line-through; }
+.plan .step.läuft { color: var(--accent); }
 
-/* Startseite */
-.hero { text-align: center; margin: 8vh auto 0; max-width: 620px; }
-.hero .logo { font-size: 52px; }
-.hero h2 { margin: 6px 0 4px; font-size: 26px; }
+.hero { text-align: center; margin: 7vh auto 0; max-width: 640px; }
+.hero .logo { font-size: 52px; } .hero h2 { margin: 6px 0 4px; font-size: 26px; }
 .hero p { color: var(--muted); margin: 0 0 22px; }
 .ideas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
 .idea { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
 .idea:hover { border-color: var(--accent); color: var(--text); }
 .idea b { display: block; color: var(--text); margin-bottom: 2px; }
 
-/* Eingabe */
-.composer { padding: 10px 16px 18px; }
-.box { width: min(820px, 100%); margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 14px; }
+.composer { padding: 8px 16px 16px; }
+.attachbar { width: min(860px, 100%); margin: 0 auto 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+.att { display: flex; align-items: center; gap: 6px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px; font-size: 12.5px; }
+.att img { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; }
+.att button { border: 0; background: none; color: var(--muted); }
+.box { width: min(860px, 100%); margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; display: flex; align-items: flex-end; gap: 6px; padding: 8px 8px 8px 10px; }
+.box.drag { border-color: var(--accent); }
 .box:focus-within { border-color: #4a4f5c; }
-textarea { flex: 1; background: none; border: 0; outline: 0; resize: none; max-height: 220px; padding: 6px 0; }
-.send { width: 40px; height: 40px; border-radius: 11px; border: 0; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #1a1205; font-size: 18px; font-weight: 700; }
+.iconbtn { width: 38px; height: 38px; border-radius: 10px; border: 0; background: none; color: var(--muted); font-size: 18px; flex: none; }
+.iconbtn:hover { background: var(--panel2); color: var(--text); }
+.iconbtn.rec { color: var(--bad); }
+textarea#input { flex: 1; background: none; border: 0; outline: 0; resize: none; max-height: 220px; padding: 8px 0; }
+.send { width: 40px; height: 40px; border-radius: 11px; border: 0; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #1a1205; font-size: 18px; font-weight: 700; flex: none; }
 .send.stop { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
-.send:disabled { opacity: .4; cursor: default; }
-.hint { width: min(820px, 100%); margin: 6px auto 0; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 10px; }
+.hint { width: min(860px, 100%); margin: 6px auto 0; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 10px; }
 
-/* Einstellungen */
-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 22px; width: min(480px, calc(100% - 32px)); }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 22px; width: min(540px, calc(100% - 32px)); max-height: 88vh; }
 dialog::backdrop { background: #0009; }
-dialog h3 { margin: 0 0 14px; }
-dialog label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+dialog h3 { margin: 0 0 6px; }
+dialog label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
 dialog input, dialog select { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; }
-dialog .small { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+dialog .small { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
 dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.models { max-height: 180px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
+.models .m { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.models .m:last-child { border: 0; }
+.models .m button { border: 0; background: none; color: var(--bad); font-size: 12px; }
+.lightbox { position: fixed; inset: 0; background: #000c; display: none; align-items: center; justify-content: center; z-index: 20; }
+.lightbox img { max-width: 92%; max-height: 92%; border-radius: 8px; }
 
 .menu { display: none; }
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
-  aside { position: fixed; inset: 0 25% 0 0; z-index: 5; transform: translateX(-100%); transition: transform .2s; }
+  aside { position: fixed; inset: 0 22% 0 0; z-index: 15; transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 40px #0008; }
   aside.open { transform: none; }
-  .menu { display: block; position: fixed; top: 10px; left: 10px; z-index: 6; }
-  .ideas { grid-template-columns: 1fr; }
-  .brand { padding-left: 64px; }
-  #chat { padding-top: 60px; }
-  .hint span:last-child { display: none; }
+  .menu { display: block; position: fixed; top: 10px; left: 10px; z-index: 16; }
+  .brand { padding-left: 60px; } #chat { padding-top: 58px; }
+  .ideas { grid-template-columns: 1fr; } .hint span:last-child { display: none; }
 }
 </style>
 </head>
 <body>
 <div class="app">
   <aside id="side">
-    <div class="brand"><h1>⚡ <span>Mirek</span></h1><p>die Macht alles – lokal & privat</p></div>
+    <div class="brand">
+      <div><h1>⚡ <span>Mirek</span></h1><p>die Macht alles – lokal & privat</p></div>
+      <button class="theme" id="themeBtn" title="Hell/Dunkel">◐</button>
+    </div>
     <button class="newchat" id="newBtn">＋ Neuer Chat</button>
-    <div class="sessions" id="sessions"></div>
+    <div class="tabs">
+      <button data-tab="chats" class="active">Chats</button>
+      <button data-tab="tasks">⏰ Geplant</button>
+    </div>
+    <div class="scroll" id="listChats"></div>
+    <div class="scroll" id="listTasks" style="display:none"></div>
     <div class="foot">
-      <div class="row"><span><span class="dot" id="dot"></span><span id="modelName">…</span></span>
-        <button class="linkbtn" id="setBtn">⚙︎ Einstellungen</button></div>
-      <div class="row"><span id="modeLabel"></span></div>
+      <div class="row"><span style="display:flex;align-items:center;min-width:0"><span class="dot" id="dot"></span><span id="modelName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span></span>
+        <button class="linkbtn" id="setBtn">⚙︎</button></div>
+      <div class="row"><span id="modeLabel"></span><span class="chip" id="visionChip" style="display:none">👁 sieht</span></div>
     </div>
   </aside>
   <button class="linkbtn menu" id="menuBtn">☰</button>
@@ -137,8 +179,12 @@ dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top
     <div class="banner" id="banner"><div id="bannerText"></div><div class="progress" id="prog"><div></div></div></div>
     <div id="chat"><div class="inner" id="msgs"></div></div>
     <div class="composer">
-      <div class="box">
+      <div class="attachbar" id="attachbar"></div>
+      <div class="box" id="box">
+        <button class="iconbtn" id="attachBtn" title="Datei/Bild anhängen">📎</button>
+        <input type="file" id="file" multiple hidden>
         <textarea id="input" rows="1" placeholder="Was soll Mirek für dich erledigen?"></textarea>
+        <button class="iconbtn" id="micBtn" title="Spracheingabe" style="display:none">🎤</button>
         <button class="send" id="sendBtn" title="Senden (Enter)">➤</button>
       </div>
       <div class="hint"><span id="cwd"></span><span>Enter = senden · Shift+Enter = neue Zeile</span></div>
@@ -148,271 +194,344 @@ dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top
 
 <dialog id="settings">
   <h3>Einstellungen</h3>
-  <label>KI-Modell (Ollama)</label>
-  <input id="sModel" list="modelList" placeholder="z.B. qwen3:8b">
-  <datalist id="modelList"></datalist>
-  <div class="small">Empfohlen: <code>qwen3:8b</code> (16 GB RAM), <code>qwen3:4b</code> (8 GB), <code>qwen3:14b</code> / <code>gpt-oss:20b</code> (stark). Fehlt es, kann Mirek es herunterladen.</div>
+  <label>KI-Anbindung</label>
+  <select id="sBackend">
+    <option value="ollama">Ollama (empfohlen, einfachste Einrichtung)</option>
+    <option value="openai">LM Studio / llama.cpp / Jan … (OpenAI-kompatibel)</option>
+  </select>
+  <div id="ollamaOpts">
+    <label>Modell</label>
+    <input id="sModel" list="modelList" placeholder="z.B. qwen3:8b">
+    <datalist id="modelList"></datalist>
+    <div class="small">Tool-fähige Modelle: <code>qwen3:8b</code>, <code>qwen3:14b</code>, <code>gpt-oss:20b</code>, <code>llama3.1</code>. Bilder sehen: <code>qwen2.5vl</code>, <code>gemma3</code>, <code>llama3.2-vision</code>.</div>
+    <div class="models" id="modelsList"></div>
+    <label>Neues Modell laden</label>
+    <div style="display:flex;gap:8px"><input id="pullName" placeholder="z.B. qwen3:14b"><button class="linkbtn" id="pullBtn">⬇ Laden</button></div>
+    <div class="small" id="pullTxt"></div>
+    <div class="progress" id="prog2" style="margin-top:6px"><div></div></div>
+  </div>
+  <div id="openaiOpts" style="display:none">
+    <label>Server-Adresse</label>
+    <input id="sUrl" placeholder="http://127.0.0.1:1234/v1">
+    <div class="small">LM Studio: 1234 · llama.cpp: 8080 · Jan: 1337. In deinem Programm den lokalen Server starten.</div>
+    <label>Modellname</label>
+    <input id="sModel2" placeholder="Name wie in deinem Programm">
+    <label>API-Schlüssel (meist leer)</label>
+    <input id="sKey" type="password" placeholder="optional">
+  </div>
+  <label>Bilder ans Modell schicken</label>
+  <select id="sVision"><option value="auto">Automatisch erkennen</option><option value="true">Immer</option><option value="false">Nie</option></select>
   <label>Erlaubnis-Modus</label>
   <select id="sMode">
     <option value="ask">Nachfragen – gefährliche Aktionen bestätige ich (empfohlen)</option>
-    <option value="auto">Volle Macht – Mirek darf alles ohne Nachfrage</option>
+    <option value="auto">Volle Macht – Mirek darf (fast) alles ohne Nachfrage</option>
     <option value="readonly">Nur lesen – Mirek darf nichts verändern</option>
   </select>
+  <div class="small">Selbst bei „Volle Macht“ fragt Mirek bei besonders gefährlichen Befehlen (Systemordner löschen, Herunterfahren …) nach.</div>
   <label>Start-Ordner für neue Chats</label>
   <input id="sWs">
   <div class="small" id="sErr" style="color: var(--bad)"></div>
-  <div class="actions">
-    <button class="btn no" id="sCancel">Abbrechen</button>
-    <button class="btn yes" id="sSave">Speichern</button>
-  </div>
+  <div class="actions"><button class="btn no" id="sCancel">Schließen</button><button class="btn yes" id="sSave">Speichern</button></div>
 </dialog>
+
+<div class="lightbox" id="lightbox"><img></div>
 
 <script>
 const TOKEN = "__MIREK_TOKEN__";
 const $ = (id) => document.getElementById(id);
 let session = localStorage.getItem("mirek.session") || "";
-let busy = false, status = {}, autoApprove = false;
+let busy = false, status = {}, autoApprove = false, attachments = [];
 
-async function api(path, body) {
+async function api(path, body, raw) {
   const opts = { headers: { "X-Mirek-Token": TOKEN } };
-  if (body !== undefined) { opts.method = "POST"; opts.body = JSON.stringify(body); opts.headers["Content-Type"] = "application/json"; }
+  if (body !== undefined) { opts.method = "POST"; opts.body = raw ? body : JSON.stringify(body); if (!raw) opts.headers["Content-Type"] = "application/json"; }
   return fetch(path, opts);
 }
 const getJSON = async (p, b) => (await api(p, b)).json();
+const img = (p) => "/api/image?path=" + encodeURIComponent(p);
 
-// ---------- Markdown (klein & sicher)
+// ---------- Theme
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); localStorage.setItem("mirek.theme", t); }
+applyTheme(localStorage.getItem("mirek.theme") || "dark");
+$("themeBtn").onclick = () => applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+
+// ---------- Markdown
 function esc(s) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function inline(s) {
-  return s.replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*]+)\*/g, "$1<i>$2</i>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
 }
 function md(src) {
-  const parts = src.split(/```/);
-  let out = "";
+  const parts = src.split(/```/); let out = "";
   parts.forEach((part, i) => {
-    if (i % 2) { const code = part.replace(/^[\w+-]*\n/, ""); out += `<pre><code>${esc(code)}</code></pre>`; return; }
-    const blocks = esc(part).split(/\n{2,}/);
-    for (const b of blocks) {
+    if (i % 2) { const code = part.replace(/^[\w+-]*\n/, ""); out += `<pre><button class="copy">kopieren</button><code>${esc(code)}</code></pre>`; return; }
+    for (const b of esc(part).split(/\n{2,}/)) {
       if (!b.trim()) continue;
       const lines = b.split("\n");
       if (lines.every((l) => /^\s*([-*]|\d+\.)\s/.test(l) || !l.trim())) {
-        const ordered = /^\s*\d+\./.test(lines[0]);
-        out += `<${ordered ? "ol" : "ul"}>` + lines.filter((l) => l.trim()).map((l) => `<li>${inline(l.replace(/^\s*([-*]|\d+\.)\s/, ""))}</li>`).join("") + `</${ordered ? "ol" : "ul"}>`;
-      } else if (/^#{1,4}\s/.test(b)) {
-        out += `<p><b>${inline(b.replace(/^#+\s/, ""))}</b></p>`;
-      } else {
-        out += `<p>${inline(b).replace(/\n/g, "<br>")}</p>`;
-      }
+        const ol = /^\s*\d+\./.test(lines[0]);
+        out += `<${ol ? "ol" : "ul"}>` + lines.filter((l) => l.trim()).map((l) => `<li>${inline(l.replace(/^\s*([-*]|\d+\.)\s/, ""))}</li>`).join("") + `</${ol ? "ol" : "ul"}>`;
+      } else if (/^#{1,4}\s/.test(b)) out += `<p><b>${inline(b.replace(/^#+\s/, ""))}</b></p>`;
+      else out += `<p>${inline(b).replace(/\n/g, "<br>")}</p>`;
     }
   });
   return out;
 }
 
-// ---------- Darstellung
 const msgs = $("msgs"), chatEl = $("chat");
 let stick = true;
-chatEl.addEventListener("scroll", () => { stick = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 80; });
+chatEl.addEventListener("scroll", () => { stick = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 90; });
 const scroll = () => { if (stick) chatEl.scrollTop = chatEl.scrollHeight; };
-
 function add(cls, html) { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; msgs.appendChild(d); scroll(); return d; }
+function imgsHtml(list) { return (list && list.length) ? `<div class="imgs">${list.map((p) => `<img src="${img(p)}" loading="lazy">`).join("")}</div>` : ""; }
+
+function assistantMsg(text) {
+  const d = add("assistant", `<div class="ct">${md(text)}</div>`);
+  const bar = document.createElement("div"); bar.className = "actbar";
+  bar.innerHTML = `<button>⧉ Kopieren</button>`;
+  bar.querySelector("button").onclick = () => navigator.clipboard.writeText(d._raw);
+  d.appendChild(bar); d._raw = text; return d;
+}
+
 function argSummary(args) {
   if (!args || typeof args !== "object") return "";
-  const v = args.command ?? args.path ?? args.url ?? args.query ?? args.target ?? args.pattern ?? args.fact ?? args.code ?? Object.values(args)[0] ?? "";
-  return String(v).split("\n")[0].slice(0, 140);
+  const v = args.command ?? args.path ?? args.url ?? args.query ?? args.target ?? args.pattern ?? args.fact ?? args.message ?? args.source ?? args.code ?? Object.values(args)[0] ?? "";
+  return String(v).split("\n")[0].slice(0, 150);
 }
-const ICONS = { run_command: "💻", run_python: "🐍", read_file: "📄", write_file: "✍️", edit_file: "✏️", list_dir: "📁", find_files: "🔎", search_text: "🔍", fetch_url: "🌐", web_search: "🌍", open: "🚀", remember: "🧠", change_directory: "📂" };
+const ICONS = { run_command: "💻", run_python: "🐍", read_file: "📄", write_file: "✍️", edit_file: "✏️", list_dir: "📁", find_files: "🔎", search_text: "🔍", fetch_url: "🌐", web_search: "🌍", open: "🚀", remember: "🧠", forget: "🧠", change_directory: "📂", download_file: "⬇️", http_request: "📡", screenshot: "📸", clipboard: "📋", notify: "🔔", process: "⚙️", system_info: "🖥️", move_path: "➡️", copy_path: "📑", delete_path: "🗑️", undo_file: "↩️", schedule: "⏰", update_plan: "📝", reload_plugins: "🧩" };
 function toolCard(name, args) {
-  const d = document.createElement("details");
-  d.className = "msg tool";
+  const d = document.createElement("details"); d.className = "msg tool";
   d.innerHTML = `<summary><span>${ICONS[name] || "🔧"}</span><span class="name">${esc(name)}</span><span class="arg">${esc(argSummary(args))}</span><span class="state"><span class="spin"></span></span></summary>
     <div class="body"><pre><code>${esc(JSON.stringify(args, null, 2))}</code></pre><div class="out"></div></div>`;
-  msgs.appendChild(d); scroll();
-  return d;
+  msgs.appendChild(d); scroll(); return d;
 }
-function finishTool(card, ok, output) {
+function finishTool(card, ok, output, images) {
   card.querySelector(".state").textContent = ok ? "✅" : "⚠️";
-  card.querySelector(".out").innerHTML = `<pre><code>${esc(output || "")}</code></pre>`;
+  card.querySelector(".out").innerHTML = `<pre><code>${esc(output || "")}</code></pre>` + imgsHtml(images);
+}
+function renderPlan(card, steps) {
+  const icon = { offen: "⬜", läuft: "🔄", erledigt: "✅" };
+  card.innerHTML = `<div class="ph">📝 Plan</div>` + steps.map((s) => `<div class="step ${s.status}">${icon[s.status] || "⬜"} ${esc(s.text)}</div>`).join("");
 }
 
 function showHero() {
   msgs.innerHTML = `<div class="hero"><div class="logo">⚡</div><h2>Hi, ich bin Mirek.</h2>
-    <p>Ich laufe komplett lokal auf deinem Rechner und kann Befehle ausführen, Dateien bearbeiten, im Netz suchen und vieles mehr.</p>
+    <p>Ich laufe komplett lokal auf deinem Rechner. Ich kann Befehle ausführen, Dateien & Dokumente bearbeiten, im Netz suchen, Bildschirmfotos ansehen, Aufgaben planen und vieles mehr.</p>
     <div class="ideas">
       <div class="idea"><b>📁 Aufräumen</b>Sortiere meinen Downloads-Ordner nach Dateityp in Unterordner</div>
-      <div class="idea"><b>🌍 Recherche</b>Suche die neuesten Nachrichten zu KI und fasse sie kurz zusammen</div>
-      <div class="idea"><b>💻 System</b>Wie viel Speicherplatz ist noch frei und was sind die größten Ordner?</div>
-      <div class="idea"><b>🛠 Bauen</b>Erstelle mir eine kleine Webseite mit einer To-do-Liste und öffne sie</div>
+      <div class="idea"><b>📄 Dokumente</b>Fasse die PDF auf meinem Schreibtisch in 5 Punkten zusammen</div>
+      <div class="idea"><b>⏰ Planen</b>Erinnere mich jeden Tag um 9 Uhr, Wasser zu trinken</div>
+      <div class="idea"><b>🛠 Bauen</b>Erstelle eine kleine Webseite mit einer To-do-Liste und öffne sie</div>
     </div></div>`;
-  msgs.querySelectorAll(".idea").forEach((el) => el.onclick = () => { $("input").value = el.lastChild.textContent; send(); });
+  msgs.querySelectorAll(".idea").forEach((el) => el.onclick = () => { $("input").value = el.lastChild.textContent; autosize(); send(); });
 }
 
 async function loadSession() {
   if (!session) { session = (await getJSON("/api/session/new", {})).id; localStorage.setItem("mirek.session", session); }
   const data = await getJSON("/api/session?id=" + encodeURIComponent(session));
-  msgs.innerHTML = "";
-  $("cwd").textContent = "📂 " + data.cwd;
+  msgs.innerHTML = ""; $("cwd").textContent = "📂 " + data.cwd;
   if (!data.items.length) showHero();
   for (const it of data.items) {
-    if (it.type === "user") add("user", esc(it.text));
-    else if (it.type === "assistant") add("assistant", md(it.text));
-    else { const c = toolCard(it.name, it.args); finishTool(c, true, it.output ?? "(kein Ergebnis)"); c.querySelector(".state").textContent = "✔︎"; }
+    if (it.type === "user") add("user", esc(it.text) + imgsHtml(it.images));
+    else if (it.type === "assistant") assistantMsg(it.text);
+    else { const c = toolCard(it.name, it.args); finishTool(c, true, it.output ?? "(kein Ergebnis)", it.images); c.querySelector(".state").textContent = "✔︎"; }
   }
-  stick = true; scroll();
-  renderSessions();
+  stick = true; scroll(); renderChats();
 }
 
-async function renderSessions() {
-  const list = await getJSON("/api/sessions");
-  const box = $("sessions"); box.innerHTML = "";
+async function renderChats() {
+  const list = await getJSON("/api/sessions"); const box = $("listChats"); box.innerHTML = "";
+  if (!list.length) box.innerHTML = `<div class="empty">Noch keine Chats.</div>`;
   for (const s of list) {
-    const el = document.createElement("div");
-    el.className = "sess" + (s.id === session ? " active" : "");
+    const el = document.createElement("div"); el.className = "sess" + (s.id === session ? " active" : "");
     el.innerHTML = `<span class="t">${esc(s.title)}</span><button class="del" title="Löschen">✕</button>`;
     el.onclick = () => { if (!busy) { session = s.id; localStorage.setItem("mirek.session", session); loadSession(); $("side").classList.remove("open"); } };
-    el.querySelector(".del").onclick = async (e) => {
-      e.stopPropagation();
-      if (!confirm("Chat löschen?")) return;
-      await api("/api/session/delete", { id: s.id });
-      if (s.id === session) { session = ""; await loadSession(); } else renderSessions();
-    };
+    el.querySelector(".del").onclick = async (e) => { e.stopPropagation(); if (!confirm("Chat löschen?")) return;
+      await api("/api/session/delete", { id: s.id }); if (s.id === session) { session = ""; await loadSession(); } else renderChats(); };
     box.appendChild(el);
   }
 }
 
-// ---------- Senden & Stream
-function setBusy(b) {
-  busy = b;
-  const btn = $("sendBtn");
-  btn.textContent = b ? "■" : "➤"; btn.title = b ? "Stoppen" : "Senden (Enter)";
-  btn.classList.toggle("stop", b);
+async function renderTasks() {
+  const list = await getJSON("/api/tasks"); const box = $("listTasks"); box.innerHTML = "";
+  if (!list.length) { box.innerHTML = `<div class="empty">Keine geplanten Aufgaben.<br><br>Sag z.B. „Erinnere mich morgen um 8 an den Zahnarzt“.</div>`; return; }
+  for (const t of list) {
+    const el = document.createElement("div"); el.className = "task";
+    el.innerHTML = `<div class="when">${esc(t.desc.split("]").slice(1).join("]").split(":")[0].trim())}</div>
+      <div>${esc(t.prompt)}</div>
+      ${t.last_result ? `<div class="res">${esc(t.last_result)}</div>` : ""}
+      <div class="acts"><button data-a="toggle">${t.enabled ? "⏸ Pausieren" : "▶ Fortsetzen"}</button><button data-a="del">🗑 Löschen</button></div>`;
+    el.querySelector('[data-a="toggle"]').onclick = async () => { await api("/api/task/toggle", { id: t.id, enabled: !t.enabled }); renderTasks(); };
+    el.querySelector('[data-a="del"]').onclick = async () => { await api("/api/task/delete", { id: t.id }); renderTasks(); };
+    box.appendChild(el);
+  }
 }
+document.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("active", x === b));
+  const tasks = b.dataset.tab === "tasks";
+  $("listChats").style.display = tasks ? "none" : ""; $("listTasks").style.display = tasks ? "" : "none";
+  if (tasks) renderTasks();
+});
+
+// ---------- Senden
+function setBusy(b) { busy = b; const btn = $("sendBtn"); btn.textContent = b ? "■" : "➤"; btn.classList.toggle("stop", b); }
 
 async function send() {
   if (busy) { api("/api/stop", { session }); return; }
   const input = $("input"), text = input.value.trim();
-  if (!text) return;
+  if (!text && !attachments.length) return;
   if (msgs.querySelector(".hero")) msgs.innerHTML = "";
-  input.value = ""; autosize();
-  add("user", esc(text));
+  const images = attachments.filter((a) => a.image).map((a) => a.path);
+  const files = attachments.filter((a) => !a.image).map((a) => a.path);
+  add("user", esc(text) + imgsHtml(images) + (files.length ? `<div class="imgs">${files.map((f) => `<span class="att">📎 ${esc(f.split(/[\\/]/).pop())}</span>`).join("")}</div>` : ""));
+  input.value = ""; autosize(); attachments = []; renderAttach();
   stick = true; setBusy(true);
-  let current = null, raw = "", card = null, think = null;
+  let current = null, card = null, think = null, plan = null;
   try {
-    const res = await api("/api/chat", { session, text });
+    const res = await api("/api/chat", { session, text, images, files });
     if (!res.ok) { add("error", esc((await res.json()).error || "Fehler")); return; }
-    const reader = res.body.getReader(), dec = new TextDecoder();
-    let buf = "";
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream: true });
-      let nl;
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let nl;
       while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
-        if (!line.trim()) continue;
-        const ev = JSON.parse(line);
-        if (ev.type === "token") {
-          if (!current) { current = add("assistant", ""); raw = ""; }
-          raw += ev.text; current.innerHTML = md(raw); scroll();
-        } else if (ev.type === "thinking") {
-          if (!think) { think = document.createElement("details"); think.className = "msg think"; think.innerHTML = "<summary>💭 denkt nach…</summary><div></div>"; msgs.appendChild(think); }
-          think.querySelector("div").textContent += ev.text; scroll();
-        } else if (ev.type === "tool_call") {
-          current = null; think = null; card = toolCard(ev.name, ev.args);
-        } else if (ev.type === "approval") {
-          askApproval(card, ev);
-        } else if (ev.type === "tool_result") {
-          if (card) finishTool(card, ev.ok, ev.output);
-          const a = card && card.querySelector(".approve"); if (a) a.remove();
-        } else if (ev.type === "info") { add("info", esc(ev.text)); current = null; }
-        else if (ev.type === "error") { add("error", esc(ev.text)); }
+        const line = buf.slice(0, nl); buf = buf.slice(nl + 1); if (!line.trim()) continue;
+        let ev; try { ev = JSON.parse(line); } catch { continue; }
+        if (ev.type === "token") { if (!current) current = assistantMsg(""); current._raw += ev.text; current.firstChild.innerHTML = md(current._raw); scroll(); }
+        else if (ev.type === "thinking") { if (!think) { think = document.createElement("details"); think.className = "msg think"; think.innerHTML = "<summary>💭 denkt nach…</summary><div></div>"; msgs.appendChild(think); } think.querySelector("div").textContent += ev.text; scroll(); }
+        else if (ev.type === "tool_call") { current = null; think = null; card = toolCard(ev.name, ev.args); }
+        else if (ev.type === "approval") askApproval(card, ev);
+        else if (ev.type === "tool_result") { if (card) finishTool(card, ev.ok, ev.output, ev.images); const a = card && card.querySelector(".approve"); if (a) a.remove(); }
+        else if (ev.type === "plan") { if (!plan || !plan.isConnected) { plan = document.createElement("div"); plan.className = "msg plan"; msgs.appendChild(plan); } renderPlan(plan, ev.steps); current = null; scroll(); }
+        else if (ev.type === "notify") { add("info", "🔔 " + esc(ev.text)); }
+        else if (ev.type === "tasks_changed") { if ($("listTasks").style.display !== "none") renderTasks(); }
+        else if (ev.type === "info") { add("info", esc(ev.text)); current = null; }
+        else if (ev.type === "error") { add("error", esc(ev.text)); current = null; }
       }
     }
-  } catch (e) {
-    add("error", "Verbindung unterbrochen: " + esc(String(e)));
-  } finally {
-    setBusy(false); renderSessions();
-  }
+  } catch (e) { add("error", "Verbindung unterbrochen: " + esc(String(e))); }
+  finally { setBusy(false); renderChats(); }
 }
 
 function askApproval(card, ev) {
-  if (autoApprove) { api("/api/approve", { id: ev.id, allow: true }); return; }
-  const box = document.createElement("div");
-  box.className = "approve";
-  box.innerHTML = `<span class="q">⚠️ Mirek möchte <b>${esc(ev.name)}</b> ausführen. Erlauben?</span>
-    <button class="btn yes">Erlauben</button><button class="btn no">Ablehnen</button><button class="btn all" title="Für den Rest dieser Sitzung im Browser nicht mehr fragen">Immer erlauben</button>`;
-  card.open = true;
-  card.appendChild(box);
-  const answer = (allow, always) => {
-    if (always) autoApprove = true;
-    api("/api/approve", { id: ev.id, allow });
-    box.innerHTML = `<span class="q">${allow ? "✅ Erlaubt" : "⛔ Abgelehnt"}</span>`;
-  };
-  const [yes, no, all] = box.querySelectorAll("button");
-  yes.onclick = () => answer(true); no.onclick = () => answer(false); all.onclick = () => answer(true, true);
+  if (!card) return;
+  if (autoApprove && !ev.critical) { api("/api/approve", { id: ev.id, decision: true }); return; }
+  const box = document.createElement("div"); box.className = "approve" + (ev.critical ? " crit" : "");
+  box.innerHTML = `<span class="q">${ev.critical ? "🛑 <b>Achtung, heikler Befehl!</b> " : "⚠️ "}Mirek möchte <b>${esc(ev.name)}</b> ausführen. Erlauben?</span>
+    <button class="btn yes">Erlauben</button><button class="btn no">Ablehnen</button>${ev.critical ? "" : '<button class="btn all">Immer erlauben</button>'}`;
+  card.open = true; card.appendChild(box);
+  const done = (decision, always) => { if (always) autoApprove = true; api("/api/approve", { id: ev.id, decision }); box.innerHTML = `<span class="q">${decision ? "✅ Erlaubt" : "⛔ Abgelehnt"}</span>`; };
+  const btns = box.querySelectorAll("button");
+  btns[0].onclick = () => done(true); btns[1].onclick = () => done(false); if (btns[2]) btns[2].onclick = () => done("always", true);
   scroll();
 }
 
-// ---------- Status, Modell, Einstellungen
+// ---------- Anhänge
+function renderAttach() {
+  const bar = $("attachbar"); bar.innerHTML = "";
+  attachments.forEach((a, i) => {
+    const el = document.createElement("div"); el.className = "att";
+    el.innerHTML = (a.image ? `<img src="${img(a.path)}">` : "📎") + ` <span>${esc(a.name)}</span> <button>✕</button>`;
+    el.querySelector("button").onclick = () => { attachments.splice(i, 1); renderAttach(); };
+    bar.appendChild(el);
+  });
+}
+async function uploadFiles(files) {
+  for (const f of files) {
+    if (f.size > 25e6) { add("error", `${f.name} ist zu groß (max 25 MB).`); continue; }
+    try { const res = await api("/api/upload", f, true); const h = { "X-Mirek-Token": TOKEN, "X-Filename": encodeURIComponent(f.name) };
+      const r = await fetch("/api/upload", { method: "POST", headers: h, body: f }); const data = await r.json();
+      if (data.path) { attachments.push(data); renderAttach(); } } catch (e) { add("error", "Upload fehlgeschlagen: " + e); }
+  }
+}
+$("attachBtn").onclick = () => $("file").click();
+$("file").onchange = (e) => { uploadFiles(e.target.files); e.target.value = ""; };
+const box = $("box");
+["dragover", "dragenter"].forEach((ev) => box.addEventListener(ev, (e) => { e.preventDefault(); box.classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) => box.addEventListener(ev, () => box.classList.remove("drag")));
+box.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files); });
+$("input").addEventListener("paste", (e) => { const imgs = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/")); if (imgs.length) uploadFiles(imgs); });
+
+// ---------- Status / Modelle
 async function refreshStatus() {
   status = await getJSON("/api/status");
   $("dot").classList.toggle("on", status.ok && status.model_present);
   $("modelName").textContent = status.model;
-  $("modeLabel").textContent = { ask: "🛡 Modus: Nachfragen", auto: "⚡ Modus: Volle Macht", readonly: "👀 Modus: Nur lesen" }[status.permission_mode];
+  $("modeLabel").textContent = { ask: "🛡 Nachfragen", auto: "⚡ Volle Macht", readonly: "👀 Nur lesen" }[status.permission_mode];
+  $("visionChip").style.display = (status.capabilities || []).includes("vision") ? "" : "none";
   const banner = $("banner"), text = $("bannerText");
   if (!status.ok) {
-    text.innerHTML = `<b>Ollama läuft nicht.</b> Mirek braucht Ollama für das lokale KI-Modell.<br>
-      Installiere es von <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a> und starte es – oder nutze das Startskript.<br><button class="linkbtn">Erneut prüfen</button>`;
-    text.querySelector("button").onclick = refreshStatus;
-    banner.classList.add("show");
-  } else if (!status.model_present) {
-    text.innerHTML = `<b>Das Modell „${esc(status.model)}“ ist noch nicht heruntergeladen.</b><br><button class="linkbtn">⬇ Jetzt herunterladen</button> <span id="pullTxt"></span>`;
-    text.querySelector("button").onclick = (e) => pull(e.target);
+    text.innerHTML = status.backend === "openai"
+      ? `<b>KI-Server nicht erreichbar.</b> Starte z.B. LM Studio und aktiviere den lokalen Server. <button class="linkbtn">Erneut prüfen</button>`
+      : `<b>Ollama läuft nicht.</b> Installiere es von <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a> und starte es. <button class="linkbtn">Erneut prüfen</button>`;
+    text.querySelector("button").onclick = refreshStatus; banner.classList.add("show");
+  } else if (!status.model_present && status.can_pull) {
+    text.innerHTML = `<b>Das Modell „${esc(status.model)}“ ist noch nicht da.</b> <button class="linkbtn">⬇ Jetzt herunterladen</button> <span id="pullInline"></span>`;
+    text.querySelector("button").onclick = (e) => pull(status.model, e.target, $("pullInline"), $("prog"));
     banner.classList.add("show");
   } else banner.classList.remove("show");
 }
 
-async function pull(btn) {
-  btn.disabled = true;
-  const prog = $("prog"); prog.style.display = "block";
-  const res = await api("/api/pull", { model: status.model });
-  const reader = res.body.getReader(), dec = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
+async function pull(model, btn, txtEl, progEl) {
+  btn.disabled = true; progEl.style.display = "block";
+  const res = await api("/api/pull", { model }); const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+  while (true) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true });
     const lines = buf.split("\n"); buf = lines.pop();
-    for (const l of lines) {
-      if (!l.trim()) continue;
-      const p = JSON.parse(l);
-      if (p.error) { $("pullTxt").textContent = "Fehler: " + p.error; btn.disabled = false; return; }
-      if (p.total) { prog.firstElementChild.style.width = (100 * (p.completed || 0) / p.total).toFixed(1) + "%"; $("pullTxt").textContent = `${(p.completed / 1e9 || 0).toFixed(2)} / ${(p.total / 1e9).toFixed(2)} GB`; }
-      else $("pullTxt").textContent = p.status || "";
-    }
-  }
-  prog.style.display = "none";
-  refreshStatus();
+    for (const l of lines) { if (!l.trim()) continue; let p; try { p = JSON.parse(l); } catch { continue; }
+      if (p.error) { txtEl.textContent = "Fehler: " + p.error; btn.disabled = false; return; }
+      if (p.total) { progEl.firstElementChild.style.width = (100 * (p.completed || 0) / p.total).toFixed(1) + "%"; txtEl.textContent = `${(p.completed / 1e9 || 0).toFixed(2)} / ${(p.total / 1e9).toFixed(2)} GB`; }
+      else txtEl.textContent = p.status || ""; } }
+  progEl.style.display = "none"; btn.disabled = false; txtEl.textContent = "✅ fertig"; refreshStatus(); fillModels();
 }
 
+function fillModels() {
+  const list = status.models || []; $("modelList").innerHTML = list.map((m) => `<option value="${esc(m.name)}">`).join("");
+  const box = $("modelsList");
+  box.innerHTML = list.length ? "" : `<div class="m">Keine Modelle installiert.</div>`;
+  for (const m of list) {
+    const el = document.createElement("div"); el.className = "m";
+    const gb = m.size ? ` (${(m.size / 1e9).toFixed(1)} GB)` : "";
+    el.innerHTML = `<span>${esc(m.name)}${gb}</span><span><button data-a="use">verwenden</button>${status.can_pull ? ' <button data-a="del">löschen</button>' : ""}</span>`;
+    el.querySelector('[data-a="use"]').onclick = () => { $("sModel").value = m.name; };
+    const del = el.querySelector('[data-a="del"]'); if (del) del.onclick = async () => { if (confirm("Modell " + m.name + " löschen?")) { await api("/api/model/delete", { model: m.name }); refreshStatus(); setTimeout(fillModels, 300); } };
+    box.appendChild(el);
+  }
+}
+
+// ---------- Einstellungen
+function toggleBackend() { const o = $("sBackend").value === "openai"; $("openaiOpts").style.display = o ? "" : "none"; $("ollamaOpts").style.display = o ? "none" : ""; }
+$("sBackend").onchange = toggleBackend;
 function openSettings() {
-  $("sModel").value = status.model || "";
-  $("modelList").innerHTML = (status.models || []).map((m) => `<option value="${esc(m)}">`).join("");
-  $("sMode").value = status.permission_mode || "ask";
-  $("sWs").value = status.workspace || "";
-  $("sErr").textContent = "";
-  $("settings").showModal();
+  $("sBackend").value = status.backend || "ollama"; toggleBackend();
+  $("sModel").value = status.model || ""; $("sModel2").value = status.model || "";
+  $("sUrl").value = status.openai_base_url || "http://127.0.0.1:1234/v1"; $("sKey").value = "";
+  $("sVision").value = String(status.vision); $("sMode").value = status.permission_mode || "ask"; $("sWs").value = status.workspace || "";
+  $("sErr").textContent = ""; fillModels(); $("settings").showModal();
 }
 $("setBtn").onclick = openSettings;
 $("sCancel").onclick = () => $("settings").close();
+$("pullBtn").onclick = () => { const n = $("pullName").value.trim(); if (n) pull(n, $("pullBtn"), $("pullTxt"), $("prog2")); };
 $("sSave").onclick = async () => {
-  const res = await api("/api/settings", { model: $("sModel").value, permission_mode: $("sMode").value, workspace: $("sWs").value });
-  const data = await res.json();
+  const backend = $("sBackend").value;
+  const payload = { backend, permission_mode: $("sMode").value, workspace: $("sWs").value, vision: $("sVision").value,
+    model: backend === "openai" ? $("sModel2").value : $("sModel").value };
+  if (backend === "openai") { payload.openai_base_url = $("sUrl").value; if ($("sKey").value) payload.openai_api_key = $("sKey").value; }
+  const res = await api("/api/settings", payload); const data = await res.json();
   if (!res.ok) { $("sErr").textContent = data.error; return; }
-  $("settings").close(); refreshStatus();
+  $("settings").close(); status = data; refreshStatus();
 };
 
-// ---------- Eingabe
+// ---------- Benachrichtigungen (Hintergrund-/geplante Aufgaben)
+if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+async function pollNotices() {
+  try { const notices = await getJSON("/api/notices");
+    for (const n of notices) { if (Notification.permission === "granted") new Notification(n.title, { body: n.text }); if ($("listTasks").style.display !== "none") renderTasks(); }
+  } catch {} setTimeout(pollNotices, 5000);
+}
+pollNotices();
+
+// ---------- Eingabe, Code-Kopieren, Bild-Lightbox
 const input = $("input");
 function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 220) + "px"; }
 input.addEventListener("input", autosize);
@@ -420,10 +539,23 @@ input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey 
 $("sendBtn").onclick = send;
 $("newBtn").onclick = async () => { if (busy) return; session = ""; await loadSession(); input.focus(); $("side").classList.remove("open"); };
 $("menuBtn").onclick = () => $("side").classList.toggle("open");
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("copy")) { navigator.clipboard.writeText(e.target.parentElement.querySelector("code").textContent); e.target.textContent = "kopiert!"; setTimeout(() => e.target.textContent = "kopieren", 1200); }
+  if (e.target.tagName === "IMG" && e.target.closest(".imgs")) { const lb = $("lightbox"); lb.querySelector("img").src = e.target.src; lb.style.display = "flex"; }
+});
+$("lightbox").onclick = () => $("lightbox").style.display = "none";
 
-refreshStatus();
-loadSession();
-input.focus();
+// ---------- Spracheingabe
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  $("micBtn").style.display = ""; const rec = new SR(); rec.lang = "de-DE"; rec.interimResults = true; let on = false, baseText = "";
+  $("micBtn").onclick = () => { if (on) { rec.stop(); return; } baseText = input.value; rec.start(); };
+  rec.onstart = () => { on = true; $("micBtn").classList.add("rec"); };
+  rec.onend = () => { on = false; $("micBtn").classList.remove("rec"); };
+  rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; input.value = (baseText + " " + t).trim(); autosize(); };
+}
+
+refreshStatus(); loadSession(); input.focus();
 </script>
 </body>
 </html>

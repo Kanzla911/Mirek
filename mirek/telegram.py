@@ -2,11 +2,13 @@
 
 import json
 import threading
+from pathlib import Path
 import urllib.error
 import urllib.request
 
 from . import config
 from .agent import Agent
+from .tools import NOTIFIERS
 
 APPROVE_WORDS = {"ja", "j", "yes", "y", "✅ ja", "ok"}
 KEYBOARD = {"keyboard": [["✅ ja", "❌ nein"]], "one_time_keyboard": True, "resize_keyboard": True}
@@ -17,7 +19,37 @@ class Bot:
         self.cfg = cfg
         self.base = f"https://api.telegram.org/bot{cfg['telegram_token']}/"
         self.allowed = {int(u) for u in cfg.get("telegram_allowed_users") or []}
+        self.file_base = f"https://api.telegram.org/file/bot{cfg['telegram_token']}/"
         self.agents, self.pending, self.running = {}, {}, set()
+        self.last_chat = None
+        NOTIFIERS.append(self._notify)
+
+    def _notify(self, title, text):
+        """Erlaubt Mirek, von sich aus (z.B. geplante Aufgaben) auf Telegram zu schreiben."""
+        if self.last_chat:
+            self.send(self.last_chat, f"🔔 {title}\n{text}")
+
+    def download_photo(self, msg):
+        file_id = None
+        if msg.get("photo"):
+            file_id = msg["photo"][-1]["file_id"]  # größte Auflösung
+        elif msg.get("document", {}).get("mime_type", "").startswith("image/"):
+            file_id = msg["document"]["file_id"]
+        if not file_id:
+            return []
+        try:
+            info = self.call("getFile", file_id=file_id)
+            with urllib.request.urlopen(self.file_base + info["file_path"], timeout=60) as r:
+                data = r.read()
+            dest = config.HOME / "uploads"
+            dest.mkdir(parents=True, exist_ok=True)
+            suffix = Path(info["file_path"]).suffix or ".jpg"
+            path = dest / f"tg-{file_id[:10]}{suffix}"
+            path.write_bytes(data)
+            return [str(path)]
+        except (urllib.error.URLError, OSError, KeyError) as e:
+            print("Foto-Download fehlgeschlagen:", e)
+            return []
 
     def call(self, method, http_timeout=40, **params):
         req = urllib.request.Request(
@@ -36,7 +68,7 @@ class Bot:
             except urllib.error.URLError as e:
                 print("Telegram-Fehler:", e)
 
-    def handle(self, chat_id, user_id, text):
+    def handle(self, chat_id, user_id, text, images=None):
         if user_id not in self.allowed:
             self.send(chat_id, f"⛔ Kein Zugriff. Deine Telegram-ID ist {user_id}.\n"
                                f"Trage sie in {config.HOME / 'config.json'} unter telegram_allowed_users ein.")
@@ -57,9 +89,10 @@ class Bot:
             self.send(chat_id, "⏳ Ich arbeite noch… (/stop zum Abbrechen)")
             return
         self.running.add(chat_id)
-        threading.Thread(target=self.work, args=(chat_id, text), daemon=True).start()
+        threading.Thread(target=self.work, args=(chat_id, text, images), daemon=True).start()
 
-    def work(self, chat_id, text):
+    def work(self, chat_id, text, images=None):
+        self.last_chat = chat_id
         agent = self.agents.get(chat_id)
         if agent is None:
             agent = self.agents[chat_id] = Agent(self.cfg, session_id=f"telegram-{chat_id}")
@@ -75,7 +108,7 @@ class Bot:
         answer = ""
         try:
             self.call("sendChatAction", chat_id=chat_id, action="typing")
-            for ev in agent.run(text, approve):
+            for ev in agent.run(text, approve, images=images):
                 if ev["type"] == "token":
                     answer += ev["text"]
                 elif ev["type"] == "tool_call":
@@ -106,8 +139,12 @@ class Bot:
             for u in updates:
                 offset = u["update_id"] + 1
                 msg = u.get("message") or {}
-                if msg.get("text"):
-                    self.handle(msg["chat"]["id"], msg["from"]["id"], msg["text"])
+                if not msg:
+                    continue
+                images = self.download_photo(msg)
+                text = msg.get("text") or msg.get("caption") or ("(Bild)" if images else "")
+                if text or images:
+                    self.handle(msg["chat"]["id"], msg["from"]["id"], text, images)
 
 
 def run_bot(cfg):

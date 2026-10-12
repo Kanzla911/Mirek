@@ -7,7 +7,9 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v ollama >/dev/null 2>&1; then
+# Ollama ist die einfachste KI-Anbindung. Wer lieber LM Studio o.ä. nutzt, kann das
+# in den Einstellungen umstellen und MIREK_BACKEND=openai setzen, um diese Prüfung zu überspringen.
+if [ "${MIREK_BACKEND}" != "openai" ] && ! command -v ollama >/dev/null 2>&1; then
   echo "Ollama (lokale KI) ist noch nicht installiert."
   if [ "$(uname)" = "Darwin" ]; then
     echo "Bitte von https://ollama.com/download installieren und dann erneut starten."
@@ -18,6 +20,7 @@ if ! command -v ollama >/dev/null 2>&1; then
   if [ "${answer:-j}" != "n" ]; then
     curl -fsSL https://ollama.com/install.sh | sh || exit 1
   else
+    echo "Du kannst Mirek auch mit LM Studio o.ä. nutzen – dann in den Einstellungen die KI-Anbindung umstellen."
     exit 1
   fi
 fi
