@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirek die Macht alles</title>
+<style>
+:root {
+  --bg: #0e1015; --panel: #161921; --panel2: #1d212b; --line: #2a2f3b;
+  --text: #e7e9ee; --muted: #8b92a3; --accent: #ffb020; --accent2: #ff6a3d;
+  --ok: #3ccf8e; --bad: #ff5d6c; --radius: 14px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.app { display: grid; grid-template-columns: 270px 1fr; height: 100%; }
+
+/* Seitenleiste */
+aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.brand { padding: 18px 18px 10px; }
+.brand h1 { margin: 0; font-size: 20px; letter-spacing: .3px; }
+.brand h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.newchat { margin: 8px 14px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); text-align: left; }
+.newchat:hover { border-color: var(--accent); }
+.sessions { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.sess { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 14px; }
+.sess:hover, .sess.active { background: var(--panel2); color: var(--text); }
+.sess .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sess .del { opacity: 0; border: 0; background: none; color: var(--muted); padding: 0 4px; }
+.sess:hover .del { opacity: 1; }
+.foot { border-top: 1px solid var(--line); padding: 12px 14px; font-size: 13px; color: var(--muted); display: grid; gap: 8px; }
+.foot .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); margin-right: 6px; }
+.dot.on { background: var(--ok); }
+.linkbtn { border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 6px 10px; }
+.linkbtn:hover { border-color: var(--accent); }
+
+/* Hauptbereich */
+main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.banner { margin: 14px auto 0; width: min(820px, calc(100% - 32px)); padding: 12px 14px; border-radius: 12px;
+  background: #2a1e10; border: 1px solid #5a3f17; font-size: 14px; display: none; }
+.banner.show { display: block; }
+.banner button { margin-top: 8px; }
+.progress { height: 6px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; display: none; }
+.progress > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .2s; }
+#chat { flex: 1; overflow-y: auto; padding: 24px 16px 8px; }
+.inner { width: min(820px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.msg { max-width: 100%; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--panel2); border: 1px solid var(--line); padding: 10px 14px; border-radius: var(--radius) var(--radius) 4px var(--radius); white-space: pre-wrap; max-width: 85%; }
+.msg.assistant { padding: 2px 2px; }
+.msg.assistant p { margin: 0 0 .6em; }
+.msg.assistant p:last-child { margin-bottom: 0; }
+.msg.info { color: var(--muted); font-size: 13px; text-align: center; }
+.msg.error { color: var(--bad); font-size: 14px; border: 1px solid #5b2730; background: #2a1418; padding: 8px 12px; border-radius: 10px; }
+code { background: var(--panel2); padding: 1px 5px; border-radius: 5px; font: 13px/1.4 ui-monospace, "Cascadia Code", Menlo, monospace; }
+pre { background: #0a0c10; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: .5em 0; }
+pre code { background: none; padding: 0; white-space: pre; }
+.msg a { color: var(--accent); }
+.tool { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; font-size: 13.5px; }
+.tool summary { padding: 8px 12px; cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: center; }
+.tool summary::-webkit-details-marker { display: none; }
+.tool .name { font-weight: 600; }
+.tool .arg { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.tool .state { font-size: 12px; }
+.tool .body { padding: 0 12px 10px; }
+.tool pre { max-height: 320px; overflow: auto; font-size: 12.5px; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; }
+@keyframes s { to { transform: rotate(360deg); } }
+.approve { border-top: 1px dashed var(--line); padding: 10px 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #221a0d; border-radius: 0 0 12px 12px; }
+.approve .q { flex: 1; min-width: 180px; }
+.btn { border: 0; border-radius: 9px; padding: 7px 14px; font-weight: 600; }
+.btn.yes { background: var(--ok); color: #06140d; }
+.btn.no { background: var(--panel2); border: 1px solid var(--line); }
+.btn.all { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
+details.think { color: var(--muted); font-size: 13px; }
+details.think div { white-space: pre-wrap; border-left: 2px solid var(--line); padding-left: 10px; margin-top: 4px; }
+
+/* Startseite */
+.hero { text-align: center; margin: 8vh auto 0; max-width: 620px; }
+.hero .logo { font-size: 52px; }
+.hero h2 { margin: 6px 0 4px; font-size: 26px; }
+.hero p { color: var(--muted); margin: 0 0 22px; }
+.ideas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+.idea { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
+.idea:hover { border-color: var(--accent); color: var(--text); }
+.idea b { display: block; color: var(--text); margin-bottom: 2px; }
+
+/* Eingabe */
+.composer { padding: 10px 16px 18px; }
+.box { width: min(820px, 100%); margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 14px; }
+.box:focus-within { border-color: #4a4f5c; }
+textarea { flex: 1; background: none; border: 0; outline: 0; resize: none; max-height: 220px; padding: 6px 0; }
+.send { width: 40px; height: 40px; border-radius: 11px; border: 0; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #1a1205; font-size: 18px; font-weight: 700; }
+.send.stop { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+.send:disabled { opacity: .4; cursor: default; }
+.hint { width: min(820px, 100%); margin: 6px auto 0; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 10px; }
+
+/* Einstellungen */
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 22px; width: min(480px, calc(100% - 32px)); }
+dialog::backdrop { background: #0009; }
+dialog h3 { margin: 0 0 14px; }
+dialog label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+dialog input, dialog select { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; }
+dialog .small { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+.menu { display: none; }
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  aside { position: fixed; inset: 0 25% 0 0; z-index: 5; transform: translateX(-100%); transition: transform .2s; }
+  aside.open { transform: none; }
+  .menu { display: block; position: fixed; top: 10px; left: 10px; z-index: 6; }
+  .ideas { grid-template-columns: 1fr; }
+  .brand { padding-left: 64px; }
+  #chat { padding-top: 60px; }
+  .hint span:last-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="side">
+    <div class="brand"><h1>⚡ <span>Mirek</span></h1><p>die Macht alles – lokal & privat</p></div>
+    <button class="newchat" id="newBtn">＋ Neuer Chat</button>
+    <div class="sessions" id="sessions"></div>
+    <div class="foot">
+      <div class="row"><span><span class="dot" id="dot"></span><span id="modelName">…</span></span>
+        <button class="linkbtn" id="setBtn">⚙︎ Einstellungen</button></div>
+      <div class="row"><span id="modeLabel"></span></div>
+    </div>
+  </aside>
+  <button class="linkbtn menu" id="menuBtn">☰</button>
+  <main>
+    <div class="banner" id="banner"><div id="bannerText"></div><div class="progress" id="prog"><div></div></div></div>
+    <div id="chat"><div class="inner" id="msgs"></div></div>
+    <div class="composer">
+      <div class="box">
+        <textarea id="input" rows="1" placeholder="Was soll Mirek für dich erledigen?"></textarea>
+        <button class="send" id="sendBtn" title="Senden (Enter)">➤</button>
+      </div>
+      <div class="hint"><span id="cwd"></span><span>Enter = senden · Shift+Enter = neue Zeile</span></div>
+    </div>
+  </main>
+</div>
+
+<dialog id="settings">
+  <h3>Einstellungen</h3>
+  <label>KI-Modell (Ollama)</label>
+  <input id="sModel" list="modelList" placeholder="z.B. qwen3:8b">
+  <datalist id="modelList"></datalist>
+  <div class="small">Empfohlen: <code>qwen3:8b</code> (16 GB RAM), <code>qwen3:4b</code> (8 GB), <code>qwen3:14b</code> / <code>gpt-oss:20b</code> (stark). Fehlt es, kann Mirek es herunterladen.</div>
+  <label>Erlaubnis-Modus</label>
+  <select id="sMode">
+    <option value="ask">Nachfragen – gefährliche Aktionen bestätige ich (empfohlen)</option>
+    <option value="auto">Volle Macht – Mirek darf alles ohne Nachfrage</option>
+    <option value="readonly">Nur lesen – Mirek darf nichts verändern</option>
+  </select>
+  <label>Start-Ordner für neue Chats</label>
+  <input id="sWs">
+  <div class="small" id="sErr" style="color: var(--bad)"></div>
+  <div class="actions">
+    <button class="btn no" id="sCancel">Abbrechen</button>
+    <button class="btn yes" id="sSave">Speichern</button>
+  </div>
+</dialog>
+
+<script>
+const TOKEN = "__MIREK_TOKEN__";
+const $ = (id) => document.getElementById(id);
+let session = localStorage.getItem("mirek.session") || "";
+let busy = false, status = {}, autoApprove = false;
+
+async function api(path, body) {
+  const opts = { headers: { "X-Mirek-Token": TOKEN } };
+  if (body !== undefined) { opts.method = "POST"; opts.body = JSON.stringify(body); opts.headers["Content-Type"] = "application/json"; }
+  return fetch(path, opts);
+}
+const getJSON = async (p, b) => (await api(p, b)).json();
+
+// ---------- Markdown (klein & sicher)
+function esc(s) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function inline(s) {
+  return s.replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function md(src) {
+  const parts = src.split(/```/);
+  let out = "";
+  parts.forEach((part, i) => {
+    if (i % 2) { const code = part.replace(/^[\w+-]*\n/, ""); out += `<pre><code>${esc(code)}</code></pre>`; return; }
+    const blocks = esc(part).split(/\n{2,}/);
+    for (const b of blocks) {
+      if (!b.trim()) continue;
+      const lines = b.split("\n");
+      if (lines.every((l) => /^\s*([-*]|\d+\.)\s/.test(l) || !l.trim())) {
+        const ordered = /^\s*\d+\./.test(lines[0]);
+        out += `<${ordered ? "ol" : "ul"}>` + lines.filter((l) => l.trim()).map((l) => `<li>${inline(l.replace(/^\s*([-*]|\d+\.)\s/, ""))}</li>`).join("") + `</${ordered ? "ol" : "ul"}>`;
+      } else if (/^#{1,4}\s/.test(b)) {
+        out += `<p><b>${inline(b.replace(/^#+\s/, ""))}</b></p>`;
+      } else {
+        out += `<p>${inline(b).replace(/\n/g, "<br>")}</p>`;
+      }
+    }
+  });
+  return out;
+}
+
+// ---------- Darstellung
+const msgs = $("msgs"), chatEl = $("chat");
+let stick = true;
+chatEl.addEventListener("scroll", () => { stick = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 80; });
+const scroll = () => { if (stick) chatEl.scrollTop = chatEl.scrollHeight; };
+
+function add(cls, html) { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; msgs.appendChild(d); scroll(); return d; }
+function argSummary(args) {
+  if (!args || typeof args !== "object") return "";
+  const v = args.command ?? args.path ?? args.url ?? args.query ?? args.target ?? args.pattern ?? args.fact ?? args.code ?? Object.values(args)[0] ?? "";
+  return String(v).split("\n")[0].slice(0, 140);
+}
+const ICONS = { run_command: "💻", run_python: "🐍", read_file: "📄", write_file: "✍️", edit_file: "✏️", list_dir: "📁", find_files: "🔎", search_text: "🔍", fetch_url: "🌐", web_search: "🌍", open: "🚀", remember: "🧠", change_directory: "📂" };
+function toolCard(name, args) {
+  const d = document.createElement("details");
+  d.className = "msg tool";
+  d.innerHTML = `<summary><span>${ICONS[name] || "🔧"}</span><span class="name">${esc(name)}</span><span class="arg">${esc(argSummary(args))}</span><span class="state"><span class="spin"></span></span></summary>
+    <div class="body"><pre><code>${esc(JSON.stringify(args, null, 2))}</code></pre><div class="out"></div></div>`;
+  msgs.appendChild(d); scroll();
+  return d;
+}
+function finishTool(card, ok, output) {
+  card.querySelector(".state").textContent = ok ? "✅" : "⚠️";
+  card.querySelector(".out").innerHTML = `<pre><code>${esc(output || "")}</code></pre>`;
+}
+
+function showHero() {
+  msgs.innerHTML = `<div class="hero"><div class="logo">⚡</div><h2>Hi, ich bin Mirek.</h2>
+    <p>Ich laufe komplett lokal auf deinem Rechner und kann Befehle ausführen, Dateien bearbeiten, im Netz suchen und vieles mehr.</p>
+    <div class="ideas">
+      <div class="idea"><b>📁 Aufräumen</b>Sortiere meinen Downloads-Ordner nach Dateityp in Unterordner</div>
+      <div class="idea"><b>🌍 Recherche</b>Suche die neuesten Nachrichten zu KI und fasse sie kurz zusammen</div>
+      <div class="idea"><b>💻 System</b>Wie viel Speicherplatz ist noch frei und was sind die größten Ordner?</div>
+      <div class="idea"><b>🛠 Bauen</b>Erstelle mir eine kleine Webseite mit einer To-do-Liste und öffne sie</div>
+    </div></div>`;
+  msgs.querySelectorAll(".idea").forEach((el) => el.onclick = () => { $("input").value = el.lastChild.textContent; send(); });
+}
+
+async function loadSession() {
+  if (!session) { session = (await getJSON("/api/session/new", {})).id; localStorage.setItem("mirek.session", session); }
+  const data = await getJSON("/api/session?id=" + encodeURIComponent(session));
+  msgs.innerHTML = "";
+  $("cwd").textContent = "📂 " + data.cwd;
+  if (!data.items.length) showHero();
+  for (const it of data.items) {
+    if (it.type === "user") add("user", esc(it.text));
+    else if (it.type === "assistant") add("assistant", md(it.text));
+    else { const c = toolCard(it.name, it.args); finishTool(c, true, it.output ?? "(kein Ergebnis)"); c.querySelector(".state").textContent = "✔︎"; }
+  }
+  stick = true; scroll();
+  renderSessions();
+}
+
+async function renderSessions() {
+  const list = await getJSON("/api/sessions");
+  const box = $("sessions"); box.innerHTML = "";
+  for (const s of list) {
+    const el = document.createElement("div");
+    el.className = "sess" + (s.id === session ? " active" : "");
+    el.innerHTML = `<span class="t">${esc(s.title)}</span><button class="del" title="Löschen">✕</button>`;
+    el.onclick = () => { if (!busy) { session = s.id; localStorage.setItem("mirek.session", session); loadSession(); $("side").classList.remove("open"); } };
+    el.querySelector(".del").onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm("Chat löschen?")) return;
+      await api("/api/session/delete", { id: s.id });
+      if (s.id === session) { session = ""; await loadSession(); } else renderSessions();
+    };
+    box.appendChild(el);
+  }
+}
+
+// ---------- Senden & Stream
+function setBusy(b) {
+  busy = b;
+  const btn = $("sendBtn");
+  btn.textContent = b ? "■" : "➤"; btn.title = b ? "Stoppen" : "Senden (Enter)";
+  btn.classList.toggle("stop", b);
+}
+
+async function send() {
+  if (busy) { api("/api/stop", { session }); return; }
+  const input = $("input"), text = input.value.trim();
+  if (!text) return;
+  if (msgs.querySelector(".hero")) msgs.innerHTML = "";
+  input.value = ""; autosize();
+  add("user", esc(text));
+  stick = true; setBusy(true);
+  let current = null, raw = "", card = null, think = null;
+  try {
+    const res = await api("/api/chat", { session, text });
+    if (!res.ok) { add("error", esc((await res.json()).error || "Fehler")); return; }
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl); buf = buf.slice(nl + 1);
+        if (!line.trim()) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === "token") {
+          if (!current) { current = add("assistant", ""); raw = ""; }
+          raw += ev.text; current.innerHTML = md(raw); scroll();
+        } else if (ev.type === "thinking") {
+          if (!think) { think = document.createElement("details"); think.className = "msg think"; think.innerHTML = "<summary>💭 denkt nach…</summary><div></div>"; msgs.appendChild(think); }
+          think.querySelector("div").textContent += ev.text; scroll();
+        } else if (ev.type === "tool_call") {
+          current = null; think = null; card = toolCard(ev.name, ev.args);
+        } else if (ev.type === "approval") {
+          askApproval(card, ev);
+        } else if (ev.type === "tool_result") {
+          if (card) finishTool(card, ev.ok, ev.output);
+          const a = card && card.querySelector(".approve"); if (a) a.remove();
+        } else if (ev.type === "info") { add("info", esc(ev.text)); current = null; }
+        else if (ev.type === "error") { add("error", esc(ev.text)); }
+      }
+    }
+  } catch (e) {
+    add("error", "Verbindung unterbrochen: " + esc(String(e)));
+  } finally {
+    setBusy(false); renderSessions();
+  }
+}
+
+function askApproval(card, ev) {
+  if (autoApprove) { api("/api/approve", { id: ev.id, allow: true }); return; }
+  const box = document.createElement("div");
+  box.className = "approve";
+  box.innerHTML = `<span class="q">⚠️ Mirek möchte <b>${esc(ev.name)}</b> ausführen. Erlauben?</span>
+    <button class="btn yes">Erlauben</button><button class="btn no">Ablehnen</button><button class="btn all" title="Für den Rest dieser Sitzung im Browser nicht mehr fragen">Immer erlauben</button>`;
+  card.open = true;
+  card.appendChild(box);
+  const answer = (allow, always) => {
+    if (always) autoApprove = true;
+    api("/api/approve", { id: ev.id, allow });
+    box.innerHTML = `<span class="q">${allow ? "✅ Erlaubt" : "⛔ Abgelehnt"}</span>`;
+  };
+  const [yes, no, all] = box.querySelectorAll("button");
+  yes.onclick = () => answer(true); no.onclick = () => answer(false); all.onclick = () => answer(true, true);
+  scroll();
+}
+
+// ---------- Status, Modell, Einstellungen
+async function refreshStatus() {
+  status = await getJSON("/api/status");
+  $("dot").classList.toggle("on", status.ok && status.model_present);
+  $("modelName").textContent = status.model;
+  $("modeLabel").textContent = { ask: "🛡 Modus: Nachfragen", auto: "⚡ Modus: Volle Macht", readonly: "👀 Modus: Nur lesen" }[status.permission_mode];
+  const banner = $("banner"), text = $("bannerText");
+  if (!status.ok) {
+    text.innerHTML = `<b>Ollama läuft nicht.</b> Mirek braucht Ollama für das lokale KI-Modell.<br>
+      Installiere es von <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a> und starte es – oder nutze das Startskript.<br><button class="linkbtn">Erneut prüfen</button>`;
+    text.querySelector("button").onclick = refreshStatus;
+    banner.classList.add("show");
+  } else if (!status.model_present) {
+    text.innerHTML = `<b>Das Modell „${esc(status.model)}“ ist noch nicht heruntergeladen.</b><br><button class="linkbtn">⬇ Jetzt herunterladen</button> <span id="pullTxt"></span>`;
+    text.querySelector("button").onclick = (e) => pull(e.target);
+    banner.classList.add("show");
+  } else banner.classList.remove("show");
+}
+
+async function pull(btn) {
+  btn.disabled = true;
+  const prog = $("prog"); prog.style.display = "block";
+  const res = await api("/api/pull", { model: status.model });
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const l of lines) {
+      if (!l.trim()) continue;
+      const p = JSON.parse(l);
+      if (p.error) { $("pullTxt").textContent = "Fehler: " + p.error; btn.disabled = false; return; }
+      if (p.total) { prog.firstElementChild.style.width = (100 * (p.completed || 0) / p.total).toFixed(1) + "%"; $("pullTxt").textContent = `${(p.completed / 1e9 || 0).toFixed(2)} / ${(p.total / 1e9).toFixed(2)} GB`; }
+      else $("pullTxt").textContent = p.status || "";
+    }
+  }
+  prog.style.display = "none";
+  refreshStatus();
+}
+
+function openSettings() {
+  $("sModel").value = status.model || "";
+  $("modelList").innerHTML = (status.models || []).map((m) => `<option value="${esc(m)}">`).join("");
+  $("sMode").value = status.permission_mode || "ask";
+  $("sWs").value = status.workspace || "";
+  $("sErr").textContent = "";
+  $("settings").showModal();
+}
+$("setBtn").onclick = openSettings;
+$("sCancel").onclick = () => $("settings").close();
+$("sSave").onclick = async () => {
+  const res = await api("/api/settings", { model: $("sModel").value, permission_mode: $("sMode").value, workspace: $("sWs").value });
+  const data = await res.json();
+  if (!res.ok) { $("sErr").textContent = data.error; return; }
+  $("settings").close(); refreshStatus();
+};
+
+// ---------- Eingabe
+const input = $("input");
+function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 220) + "px"; }
+input.addEventListener("input", autosize);
+input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+$("sendBtn").onclick = send;
+$("newBtn").onclick = async () => { if (busy) return; session = ""; await loadSession(); input.focus(); $("side").classList.remove("open"); };
+$("menuBtn").onclick = () => $("side").classList.toggle("open");
+
+refreshStatus();
+loadSession();
+input.focus();
+</script>
+</body>
+</html>

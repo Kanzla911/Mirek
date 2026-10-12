@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Mirek starten (Linux / macOS). Doppelklick oder: ./start.sh  [chat|telegram]
+cd "$(dirname "$0")"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Python 3 fehlt. Bitte installieren: https://www.python.org/downloads/"
+  exit 1
+fi
+
+if ! command -v ollama >/dev/null 2>&1; then
+  echo "Ollama (lokale KI) ist noch nicht installiert."
+  if [ "$(uname)" = "Darwin" ]; then
+    echo "Bitte von https://ollama.com/download installieren und dann erneut starten."
+    open "https://ollama.com/download" 2>/dev/null
+    exit 1
+  fi
+  read -r -p "Jetzt automatisch installieren? [J/n] " answer
+  if [ "${answer:-j}" != "n" ]; then
+    curl -fsSL https://ollama.com/install.sh | sh || exit 1
+  else
+    exit 1
+  fi
+fi
+
+exec python3 -m mirek "$@"
